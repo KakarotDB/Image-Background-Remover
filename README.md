@@ -1,4 +1,4 @@
-# ✂️ CutOut — Free AI Background Remover
+# ✂️ Annihilate BG - Free AI Background Remover
 
 A fully free, no-paywall, no-signup background remover that runs **entirely in your browser**. No images are ever sent to a server. Full resolution output. No watermarks.
 
