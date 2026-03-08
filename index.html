@@ -67,8 +67,13 @@
   .result-title::before { content: ''; width: 8px; height: 8px; background: var(--success); border-radius: 50%; box-shadow: 0 0 10px var(--success); }
   .result-actions { display: flex; gap: 10px; flex-wrap: wrap; }
   .btn-action { display: inline-flex; align-items: center; gap: 8px; padding: 11px 20px; border-radius: 10px; font-family: var(--font-head); font-size: 0.78rem; font-weight: 700; letter-spacing: 0.02em; text-transform: uppercase; cursor: pointer; border: none; transition: all 0.2s ease; }
-  .btn-download { background: var(--accent); color: #000; }
-  .btn-download:hover { background: #fff; transform: translateY(-1px); box-shadow: 0 6px 20px rgba(255,225,53,0.3); }
+  .download-group { display: flex; align-items: stretch; border-radius: 10px; overflow: hidden; box-shadow: 0 0 0 1px rgba(255,225,53,0.35); }
+  .download-group:hover { box-shadow: 0 0 0 1px rgba(255,255,255,0.5); }
+  .btn-download { background: var(--accent); color: #000; border-radius: 0; }
+  .btn-download:hover { background: #fff; transform: none; box-shadow: none; }
+  .fmt-select { appearance: none; -webkit-appearance: none; background: #1c1c10; color: var(--accent); border: none; border-left: 1px solid rgba(255,225,53,0.25); padding: 0 26px 0 10px; font-family: var(--font-head); font-size: 0.72rem; font-weight: 700; letter-spacing: 0.04em; cursor: pointer; outline: none; text-transform: uppercase; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23ffe135' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 8px center; transition: background-color 0.2s; }
+  .fmt-select:hover { background-color: #26260f; }
+  .fmt-select option { background: #0f0f16; color: var(--text); }
   .btn-new { background: transparent; color: var(--text); border: 1px solid var(--border); }
   .btn-new:hover { border-color: var(--text); background: rgba(255,255,255,0.05); }
   .compare-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
@@ -168,10 +173,17 @@
     <div class="result-header">
       <div class="result-title">Background Removed</div>
       <div class="result-actions">
-        <button class="btn-action btn-download" id="btn-download" type="button">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7,10 12,15 17,10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-          Download PNG
-        </button>
+        <div class="download-group">
+          <button class="btn-action btn-download" id="btn-download" type="button">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7,10 12,15 17,10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Download
+          </button>
+          <select class="fmt-select" id="fmt-select">
+            <option value="png">PNG</option>
+            <option value="jpg">JPG</option>
+            <option value="webp">WEBP</option>
+          </select>
+        </div>
         <button class="btn-action btn-new" id="btn-new" type="button">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 2v6h6"/><path d="M3 13a9 9 0 1 0 3-7.7L3 8"/></svg>
           New Image
@@ -243,6 +255,7 @@
   const resultSizeEl    = document.getElementById('result-size');
   const btnDownload     = document.getElementById('btn-download');
   const btnNew          = document.getElementById('btn-new');
+  const fmtSelect       = document.getElementById('fmt-select');
   const errorBanner     = document.getElementById('error-banner');
   const errorMsg        = document.getElementById('error-msg');
 
@@ -285,14 +298,18 @@
   // ── Buttons ──
   btnNew.addEventListener('click', resetUI);
   btnDownload.addEventListener('click', () => {
+    const fmt = fmtSelect.value;
+    const mimeMap = { png: 'image/png', jpg: 'image/jpeg', webp: 'image/webp' };
+    const mime = mimeMap[fmt] || 'image/png';
+    const quality = fmt === 'jpg' ? 0.95 : undefined;
     resultCanvas.toBlob(blob => {
       const a = document.createElement('a');
       a.href = URL.createObjectURL(blob);
-      a.download = originalFilename.replace(/\.[^.]+$/, '') + '_cutout.png';
+      a.download = originalFilename.replace(/\.[^.]+$/, '') + '_cutout.' + fmt;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
-    }, 'image/png');
+    }, mime, quality);
   });
 
   // ── Load model once ──
