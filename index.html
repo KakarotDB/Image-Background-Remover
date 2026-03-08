@@ -124,8 +124,8 @@
           <line x1="12" y1="3" x2="12" y2="15"/>
         </svg>
       </div>
-      <div class="dz-title">Drop your image here</div>
-      <div class="dz-sub">or click the button below</div>
+      <div class="dz-title">Drop or paste your image here</div>
+      <div class="dz-sub">drag & drop, Ctrl+V to paste, or click below</div>
       <button class="btn-upload" id="btn-choose" type="button">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
           <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
@@ -260,6 +260,20 @@
     const file = e.dataTransfer.files[0];
     if (file && file.type.startsWith('image/')) processFile(file);
     else showError('Please drop a valid image file (JPG, PNG, WEBP).');
+  });
+
+  // ── Paste (Ctrl+V / Cmd+V) ──
+  document.addEventListener('paste', e => {
+    if (uploadArea.style.display === 'none') return;
+    const items = e.clipboardData?.items;
+    if (!items) return;
+    for (const item of items) {
+      if (item.type.startsWith('image/')) {
+        const file = item.getAsFile();
+        if (file) { processFile(file); return; }
+      }
+    }
+    showError('No image found in clipboard. Copy an image first, then paste.');
   });
 
   // ── Buttons ──
