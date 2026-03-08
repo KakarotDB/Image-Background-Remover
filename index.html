@@ -91,6 +91,9 @@
   #file-input { display: none; }
   .error-banner { display: none; max-width: 760px; margin: 0 auto 24px; padding: 0 48px; }
   .error-inner { background: rgba(255,60,60,0.08); border: 1px solid rgba(255,60,60,0.25); border-radius: 12px; padding: 16px 20px; font-size: 0.82rem; color: #ff6b6b; display: flex; align-items: flex-start; gap: 12px; line-height: 1.5; }
+  .error-steps { margin-top: 8px; padding-left: 4px; }
+  .error-steps li { margin-top: 4px; list-style: none; padding-left: 0; }
+  .error-steps li::before { content: '→ '; opacity: 0.6; }
 </style>
 </head>
 <body>
@@ -141,8 +144,8 @@
 
   <div class="error-banner" id="error-banner">
     <div class="error-inner">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="flex-shrink:0;margin-top:1px"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-      <span id="error-msg">Something went wrong.</span>
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="flex-shrink:0;margin-top:2px"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      <div id="error-msg">Something went wrong.</div>
     </div>
   </div>
 
@@ -249,7 +252,10 @@
 
   // ── File input ──
   btnChoose.addEventListener('click', e => { e.stopPropagation(); fileInput.click(); });
-  dropzone.addEventListener('click', e => { if (e.target === dropzone || e.target.closest('.dz-icon') || e.target.classList.contains('dz-title') || e.target.classList.contains('dz-sub') || e.target.classList.contains('formats')) fileInput.click(); });
+  dropzone.addEventListener('click', e => {
+    if (e.target === dropzone || e.target.closest('.dz-icon') || e.target.classList.contains('dz-title') || e.target.classList.contains('dz-sub') || e.target.classList.contains('formats'))
+      fileInput.click();
+  });
   fileInput.addEventListener('change', () => { if (fileInput.files[0]) processFile(fileInput.files[0]); });
 
   // ── Drag & drop ──
@@ -318,7 +324,7 @@
       showError('File exceeds the 100MB limit. Please choose a smaller image.'); return;
     }
 
-    originalFilename = file.name;
+    originalFilename = file.name || 'pasted-image';
     hideError();
     originalPreview.src = URL.createObjectURL(file);
     originalSizeEl.textContent = formatSize(file.size);
@@ -370,7 +376,22 @@
       console.error(err);
       statusPanel.style.display = 'none';
       uploadArea.style.display  = 'block';
-      showError('Processing failed: ' + (err.message || 'Unknown error. Check the console for details.'));
+
+      const msg = (err.message || '').toLowerCase();
+      if (msg.includes('fetch') || msg.includes('network') || msg.includes('load') || msg.includes('failed')) {
+        errorMsg.innerHTML =
+          '<strong>Failed to download the AI model.</strong> This is a network issue, not a problem with your image.' +
+          '<ul class="error-steps">' +
+          '<li>Refresh the page and try again</li>' +
+          '<li>Check your internet connection is stable</li>' +
+          '<li>Disable any VPN or ad blocker (they can block HuggingFace)</li>' +
+          '<li>Check if <a href="https://huggingface.co" target="_blank" style="color:#ffaa44">huggingface.co</a> is reachable in your browser</li>' +
+          '<li>Once it downloads successfully once, it is cached forever — this won\'t happen again</li>' +
+          '</ul>';
+        errorBanner.style.display = 'block';
+      } else {
+        showError('Processing failed: ' + (err.message || 'Unknown error. Check the browser console for details.'));
+      }
     }
   }
 
@@ -385,8 +406,8 @@
 
   function setStatus(t, s) { statusTitle.textContent = t; statusSub.textContent = s; }
   function setProgress(p)  { progressBar.style.width = p + '%'; }
-  function showError(m)    { errorMsg.textContent = m; errorBanner.style.display = 'block'; }
-  function hideError()     { errorBanner.style.display = 'none'; }
+  function showError(m)    { errorMsg.innerHTML = m; errorBanner.style.display = 'block'; }
+  function hideError()     { errorBanner.style.display = 'none'; errorMsg.innerHTML = ''; }
   function delay(ms)       { return new Promise(r => setTimeout(r, ms)); }
   function formatSize(b)   {
     if (b < 1024) return b + ' B';
