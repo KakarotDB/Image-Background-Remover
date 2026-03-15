@@ -65,7 +65,7 @@
   .result-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; flex-wrap: wrap; gap: 12px; }
   .result-title { font-family: var(--font-head); font-size: 1rem; font-weight: 700; letter-spacing: -0.01em; display: flex; align-items: center; gap: 8px; }
   .result-title::before { content: ''; width: 8px; height: 8px; background: var(--success); border-radius: 50%; box-shadow: 0 0 10px var(--success); }
-  .result-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+  .result-actions { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
   .btn-action { display: inline-flex; align-items: center; gap: 8px; padding: 11px 20px; border-radius: 10px; font-family: var(--font-head); font-size: 0.78rem; font-weight: 700; letter-spacing: 0.02em; text-transform: uppercase; cursor: pointer; border: none; transition: all 0.2s ease; }
   .download-group { display: flex; align-items: stretch; border-radius: 10px; overflow: hidden; box-shadow: 0 0 0 1px rgba(255,225,53,0.35); }
   .download-group:hover { box-shadow: 0 0 0 1px rgba(255,255,255,0.5); }
@@ -76,6 +76,9 @@
   .fmt-select option { background: #0f0f16; color: var(--text); }
   .btn-new { background: transparent; color: var(--text); border: 1px solid var(--border); }
   .btn-new:hover { border-color: var(--text); background: rgba(255,255,255,0.05); }
+  .method-badge { font-size: 0.62rem; letter-spacing: 0.1em; text-transform: uppercase; padding: 4px 10px; border-radius: 100px; font-family: var(--font-mono); }
+  .method-badge.flood { color: #4fffb0; border: 1px solid rgba(79,255,176,0.35); background: rgba(79,255,176,0.06); }
+  .method-badge.ai { color: #b48fff; border: 1px solid rgba(180,143,255,0.35); background: rgba(180,143,255,0.06); }
   .compare-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
   @media (max-width: 640px) { .compare-grid { grid-template-columns: 1fr; } header { padding: 20px 24px; } .hero { padding: 48px 24px 32px; } .upload-area, #status-panel, #result-panel { padding: 0 24px; } }
   .img-card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; }
@@ -171,7 +174,10 @@
 
   <div id="result-panel">
     <div class="result-header">
-      <div class="result-title">Background Removed</div>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <div class="result-title">Background Removed</div>
+        <span class="method-badge" id="method-badge"></span>
+      </div>
       <div class="result-actions">
         <div class="download-group">
           <button class="btn-action btn-download" id="btn-download" type="button">
@@ -212,17 +218,17 @@
     <div class="feat-card">
       <div class="feat-icon">🔒</div>
       <div class="feat-title">100% Private</div>
-      <div class="feat-desc">Your images never leave your device. All AI processing runs locally in your browser using WebAssembly.</div>
+      <div class="feat-desc">Your images never leave your device. All processing runs locally in your browser — no servers involved.</div>
+    </div>
+    <div class="feat-card">
+      <div class="feat-icon">🧠</div>
+      <div class="feat-title">Smart Detection</div>
+      <div class="feat-desc">Logos and flat graphics use instant flood-fill. Photos use the RMBG-1.4 AI model. Automatically.</div>
     </div>
     <div class="feat-card">
       <div class="feat-icon">🖼️</div>
       <div class="feat-title">Full Resolution</div>
       <div class="feat-desc">Output PNG retains the exact original pixel dimensions — no downscaling, no compression.</div>
-    </div>
-    <div class="feat-card">
-      <div class="feat-icon">⚡</div>
-      <div class="feat-title">Cached After First Run</div>
-      <div class="feat-desc">The AI model is cached locally after first download. Future removals are nearly instant.</div>
     </div>
   </div>
 
@@ -240,6 +246,7 @@
   env.allowLocalModels = false;
   env.useBrowserCache  = true;
 
+  // ── DOM refs ──
   const uploadArea      = document.getElementById('upload-area');
   const dropzone        = document.getElementById('dropzone');
   const fileInput       = document.getElementById('file-input');
@@ -258,6 +265,7 @@
   const fmtSelect       = document.getElementById('fmt-select');
   const errorBanner     = document.getElementById('error-banner');
   const errorMsg        = document.getElementById('error-msg');
+  const methodBadge     = document.getElementById('method-badge');
 
   let model = null;
   let processor = null;
@@ -281,7 +289,7 @@
     else showError('Please drop a valid image file (JPG, PNG, WEBP).');
   });
 
-  // ── Paste (Ctrl+V / Cmd+V) ──
+  // ── Paste ──
   document.addEventListener('paste', e => {
     if (uploadArea.style.display === 'none') return;
     const items = e.clipboardData?.items;
@@ -298,9 +306,9 @@
   // ── Buttons ──
   btnNew.addEventListener('click', resetUI);
   btnDownload.addEventListener('click', () => {
-    const fmt = fmtSelect.value;
+    const fmt     = fmtSelect.value;
     const mimeMap = { png: 'image/png', jpg: 'image/jpeg', webp: 'image/webp' };
-    const mime = mimeMap[fmt] || 'image/png';
+    const mime    = mimeMap[fmt] || 'image/png';
     const quality = fmt === 'jpg' ? 0.95 : undefined;
     resultCanvas.toBlob(blob => {
       const a = document.createElement('a');
@@ -312,7 +320,162 @@
     }, mime, quality);
   });
 
-  // ── Load model once ──
+  // ════════════════════════════════════════════════════
+  // SMART DETECTION — decide which method to use
+  // ════════════════════════════════════════════════════
+
+  /**
+   * Analyses the image and returns 'flood' for flat graphics/logos
+   * or 'ai' for photographs and complex images.
+   *
+   * Heuristics (all run on a downscaled 120×120 sample for speed):
+   *  1. Corner consistency  — if all 4 corners share a similar colour,
+   *     there's likely a solid background to flood-fill.
+   *  2. Background coverage — if >55% of pixels match the corner colour
+   *     (within tolerance 40), the background is dominant and flat.
+   *  3. Colour variance     — flat graphics have low overall variance;
+   *     photos have high variance due to textures, gradients, and noise.
+   *     Threshold: stdDev < 60 across all channels = flat.
+   *
+   * All three conditions must agree to use flood-fill.
+   */
+  async function detectImageType(file) {
+    const SAMPLE = 120;
+    const CORNER_TOL = 35;   // max RGB distance for corners to be "same colour"
+    const BG_TOL     = 40;   // max RGB distance for a pixel to "match" background
+    const BG_COVER   = 0.55; // fraction of pixels that must match background
+    const VAR_THRESH = 60;   // std-dev threshold — below = flat graphic
+
+    return new Promise(resolve => {
+      const img = new Image();
+      img.onload = () => {
+        const c = document.createElement('canvas');
+        c.width = SAMPLE; c.height = SAMPLE;
+        const ctx = c.getContext('2d');
+        ctx.drawImage(img, 0, 0, SAMPLE, SAMPLE);
+        const d = ctx.getImageData(0, 0, SAMPLE, SAMPLE).data;
+
+        const px = (x, y) => {
+          const i = (y * SAMPLE + x) * 4;
+          return [d[i], d[i+1], d[i+2]];
+        };
+        const dist = (a, b) => Math.sqrt((a[0]-b[0])**2 + (a[1]-b[1])**2 + (a[2]-b[2])**2);
+
+        // 1. Corner colours (average 3×3 patch at each corner)
+        const cornerAvg = (cx, cy) => {
+          let r=0,g=0,b=0,n=0;
+          for (let dy=-1; dy<=1; dy++) for (let dx=-1; dx<=1; dx++) {
+            const [pr,pg,pb] = px(Math.min(Math.max(cx+dx,0),SAMPLE-1), Math.min(Math.max(cy+dy,0),SAMPLE-1));
+            r+=pr; g+=pg; b+=pb; n++;
+          }
+          return [r/n, g/n, b/n];
+        };
+        const corners = [
+          cornerAvg(0,0), cornerAvg(SAMPLE-1,0),
+          cornerAvg(0,SAMPLE-1), cornerAvg(SAMPLE-1,SAMPLE-1)
+        ];
+        const bgColor = corners[0]; // use top-left as reference background
+        const cornersConsistent = corners.every(c => dist(c, bgColor) < CORNER_TOL);
+
+        // 2. Background coverage
+        let bgPixels = 0;
+        const total = SAMPLE * SAMPLE;
+        for (let i = 0; i < total; i++) {
+          const pi = i * 4;
+          if (dist([d[pi], d[pi+1], d[pi+2]], bgColor) < BG_TOL) bgPixels++;
+        }
+        const bgRatio = bgPixels / total;
+
+        // 3. Colour variance (std dev across all pixels)
+        let sumR=0, sumG=0, sumB=0;
+        for (let i=0; i<total; i++) { sumR+=d[i*4]; sumG+=d[i*4+1]; sumB+=d[i*4+2]; }
+        const mR=sumR/total, mG=sumG/total, mB=sumB/total;
+        let varSum=0;
+        for (let i=0; i<total; i++) {
+          varSum += (d[i*4]-mR)**2 + (d[i*4+1]-mG)**2 + (d[i*4+2]-mB)**2;
+        }
+        const stdDev = Math.sqrt(varSum / (total * 3));
+
+        const isFlat = cornersConsistent && bgRatio > BG_COVER && stdDev < VAR_THRESH;
+        resolve(isFlat ? 'flood' : 'ai');
+      };
+      img.onerror = () => resolve('ai'); // default to AI on failure
+      img.src = URL.createObjectURL(file);
+    });
+  }
+
+  // ════════════════════════════════════════════════════
+  // FLOOD FILL — for logos, screenshots, flat graphics
+  // ════════════════════════════════════════════════════
+
+  /**
+   * Removes the background using a BFS flood fill seeded from all 4 corners.
+   * Works perfectly on images with a solid/near-solid background colour.
+   * Runs in milliseconds — no model download required.
+   *
+   * tolerance: max colour distance (0–441) a pixel can differ from the
+   *            seed colour and still be considered background.
+   *            32 = tight (pure solid backgrounds)
+   *            48 = looser (slight JPEG compression or anti-aliasing)
+   */
+  async function floodFillRemoveBg(file, tolerance = 40) {
+    const bitmap = await createImageBitmap(file);
+    const { width: W, height: H } = bitmap;
+
+    const c = document.createElement('canvas');
+    c.width = W; c.height = H;
+    const ctx = c.getContext('2d');
+    ctx.drawImage(bitmap, 0, 0);
+
+    const imgData = ctx.getImageData(0, 0, W, H);
+    const d = imgData.data;
+
+    const idx  = (x, y) => (y * W + x) * 4;
+    const getC = (x, y) => { const i=idx(x,y); return [d[i],d[i+1],d[i+2],d[i+3]]; };
+    const dist = (a, b) => Math.sqrt((a[0]-b[0])**2+(a[1]-b[1])**2+(a[2]-b[2])**2);
+
+    // Seed colour = average of the 4 corner pixels
+    const corners = [getC(0,0), getC(W-1,0), getC(0,H-1), getC(W-1,H-1)];
+    const seed = corners.reduce((acc,c) => [acc[0]+c[0], acc[1]+c[1], acc[2]+c[2]], [0,0,0])
+                        .map(v => v/4);
+
+    const visited = new Uint8Array(W * H); // 1 = already processed
+    const queue   = [];
+
+    // Seed BFS from all 4 corners
+    const enqueue = (x, y) => {
+      if (x < 0 || x >= W || y < 0 || y >= H) return;
+      const i = y * W + x;
+      if (visited[i]) return;
+      visited[i] = 1;
+      const [r,g,b,a] = getC(x, y);
+      if (a === 0 || dist([r,g,b], seed) <= tolerance) queue.push(x, y);
+    };
+
+    enqueue(0,   0);
+    enqueue(W-1, 0);
+    enqueue(0,   H-1);
+    enqueue(W-1, H-1);
+
+    // BFS
+    while (queue.length > 0) {
+      const y = queue.pop();
+      const x = queue.pop();
+      // Make this pixel transparent
+      d[idx(x,y) + 3] = 0;
+      // Push 4 neighbours
+      enqueue(x+1, y); enqueue(x-1, y);
+      enqueue(x, y+1); enqueue(x, y-1);
+    }
+
+    ctx.putImageData(imgData, 0, 0);
+    return { canvas: c, width: W, height: H };
+  }
+
+  // ════════════════════════════════════════════════════
+  // AI PIPELINE — for photos and complex images
+  // ════════════════════════════════════════════════════
+
   async function ensureModel() {
     if (model && processor) return;
     setStatus('Downloading AI model…', 'First run only · ~175MB cached locally for future use');
@@ -335,7 +498,40 @@
     setProgress(65);
   }
 
-  // ── Main ──
+  async function runAiRemoval(file) {
+    setStatus('Running AI inference…', 'Segmenting foreground — this may take a moment on large images');
+    setProgress(72);
+
+    const image = await RawImage.fromURL(URL.createObjectURL(file));
+    const { pixel_values } = await processor(image);
+    const { output }       = await model({ input: pixel_values });
+
+    setStatus('Compositing output…', 'Applying transparency mask at full resolution');
+    setProgress(94);
+
+    const mask = await RawImage.fromTensor(output[0].mul(255).to('uint8'))
+                               .resize(image.width, image.height);
+
+    const canvas = document.createElement('canvas');
+    canvas.width  = image.width;
+    canvas.height = image.height;
+    const ctx     = canvas.getContext('2d');
+    const bitmap  = await createImageBitmap(file);
+    ctx.drawImage(bitmap, 0, 0);
+
+    const imgData = ctx.getImageData(0, 0, image.width, image.height);
+    for (let i = 0; i < mask.data.length; i++) {
+      imgData.data[4 * i + 3] = mask.data[i];
+    }
+    ctx.putImageData(imgData, 0, 0);
+
+    return { canvas, width: image.width, height: image.height };
+  }
+
+  // ════════════════════════════════════════════════════
+  // MAIN ENTRY POINT
+  // ════════════════════════════════════════════════════
+
   async function processFile(file) {
     if (file.size > 100 * 1024 * 1024) {
       showError('File exceeds the 100MB limit. Please choose a smaller image.'); return;
@@ -352,38 +548,39 @@
     setProgress(0);
 
     try {
-      await ensureModel();
+      // 1. Detect image type
+      setStatus('Analysing image…', 'Checking whether to use flood-fill or AI…');
+      setProgress(10);
+      const method = await detectImageType(file);
 
-      setStatus('Reading image…', 'Decoding pixels');
-      setProgress(68);
-      const image = await RawImage.fromURL(URL.createObjectURL(file));
+      let result;
 
-      setStatus('Running AI inference…', 'Segmenting foreground — this may take a moment on large images');
-      setProgress(72);
-      const { pixel_values } = await processor(image);
-      const { output }       = await model({ input: pixel_values });
+      if (method === 'flood') {
+        // ── Flat graphic / logo path ──
+        setStatus('Removing background…', 'Flat graphic detected — using instant flood-fill');
+        setProgress(40);
+        await delay(50); // let the UI repaint
+        result = await floodFillRemoveBg(file);
+        setProgress(100);
+        methodBadge.textContent = '⚡ Instant mode';
+        methodBadge.className   = 'method-badge flood';
 
-      setStatus('Compositing output…', 'Applying transparency mask at full resolution');
-      setProgress(94);
-
-      const mask = await RawImage.fromTensor(output[0].mul(255).to('uint8'))
-                                 .resize(image.width, image.height);
-
-      const canvas = resultCanvas;
-      canvas.width  = image.width;
-      canvas.height = image.height;
-      const ctx = canvas.getContext('2d');
-      const imgBitmap = await createImageBitmap(file);
-      ctx.drawImage(imgBitmap, 0, 0);
-
-      const imgData = ctx.getImageData(0, 0, image.width, image.height);
-      for (let i = 0; i < mask.data.length; i++) {
-        imgData.data[4 * i + 3] = mask.data[i];
+      } else {
+        // ── Photo / complex image path ──
+        setStatus('Photo detected — loading AI model…', 'Preparing RMBG-1.4 for segmentation');
+        setProgress(15);
+        await ensureModel();
+        result = await runAiRemoval(file);
+        setProgress(100);
+        methodBadge.textContent = '🧠 AI mode';
+        methodBadge.className   = 'method-badge ai';
       }
-      ctx.putImageData(imgData, 0, 0);
 
-      setProgress(100);
-      resultSizeEl.textContent = `${image.width} × ${image.height}px`;
+      // 2. Copy result onto the visible canvas
+      resultCanvas.width  = result.width;
+      resultCanvas.height = result.height;
+      resultCanvas.getContext('2d').drawImage(result.canvas, 0, 0);
+      resultSizeEl.textContent = `${result.width} × ${result.height}px`;
 
       await delay(300);
       statusPanel.style.display = 'none';
@@ -403,7 +600,7 @@
           '<li>Check your internet connection is stable</li>' +
           '<li>Disable any VPN or ad blocker (they can block HuggingFace)</li>' +
           '<li>Check if <a href="https://huggingface.co" target="_blank" style="color:#ffaa44">huggingface.co</a> is reachable in your browser</li>' +
-          '<li>Once it downloads successfully once, it is cached forever — this won\'t happen again</li>' +
+          '<li>Once downloaded once, the model is cached forever — this won\'t happen again</li>' +
           '</ul>';
         errorBanner.style.display = 'block';
       } else {
@@ -427,7 +624,7 @@
   function hideError()     { errorBanner.style.display = 'none'; errorMsg.innerHTML = ''; }
   function delay(ms)       { return new Promise(r => setTimeout(r, ms)); }
   function formatSize(b)   {
-    if (b < 1024) return b + ' B';
+    if (b < 1024)    return b + ' B';
     if (b < 1048576) return (b/1024).toFixed(1) + ' KB';
     return (b/1048576).toFixed(1) + ' MB';
   }
