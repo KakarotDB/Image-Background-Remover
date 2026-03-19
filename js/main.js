@@ -165,17 +165,14 @@ async function startBatch(files) {
   });
   if (!validFiles.length) return;
 
-  // -- Hard cap --
+  // -- Hard cap: show confirmation modal --
   if (validFiles.length > HARD_CAP) {
-    showError(
-      `Too many images (${validFiles.length}). Please select ${HARD_CAP} or fewer at a time ` +
-      `to avoid overloading your browser. You can run multiple batches.`
-    );
-    return;
+    const confirmed = await showConfirmModal(validFiles.length);
+    if (!confirmed) return;
   }
 
-  // -- Soft warning --
-  if (validFiles.length > WARN_THRESHOLD) {
+  // -- Soft warning (11-20 images) --
+  if (validFiles.length > WARN_THRESHOLD && validFiles.length <= HARD_CAP) {
     showWarning(
       `Processing ${validFiles.length} images. ` +
       `Flat graphics will finish instantly. ` +
@@ -230,15 +227,29 @@ function onAllDone(jobs) {
 
   if (doneCount > 0) btnDlAll.disabled = false;
 
-  // Show a summary if cancelled mid-batch
+  // If anything was cancelled, sort the grid: done first, error second, cancelled last
   if (cancelledCount > 0) {
+    sortQueueGrid();
     showWarning(
       `Cancelled. ${doneCount} image${doneCount !== 1 ? 's' : ''} completed, ` +
-      `${cancelledCount} skipped. You can retry individual images below.`
+      `${cancelledCount} skipped. Completed images are shown first.`
     );
   }
 
   updateCounter();
+}
+
+function sortQueueGrid() {
+  const order = { done: 0, error: 1, processing: 2, waiting: 3, cancelled: 4 };
+  const cards = Array.from(queueGrid.children);
+  cards
+    .sort((a, b) => {
+      // Derive status from the card's class list (e.g. "queue-item done")
+      const statusA = (a.className.split(' ')[1]) || 'waiting';
+      const statusB = (b.className.split(' ')[1]) || 'waiting';
+      return (order[statusA] ?? 9) - (order[statusB] ?? 9);
+    })
+    .forEach(card => queueGrid.appendChild(card)); // re-appending re-orders in place
 }
 
 // ====================================================
@@ -385,6 +396,42 @@ function resetUI() {
   btnDlAll.disabled         = true;
   hideError();
   hideWarning();
+}
+
+
+// ====================================================
+// CONFIRMATION MODAL
+// ====================================================
+
+function showConfirmModal(count) {
+  return new Promise(resolve => {
+    const overlay  = document.getElementById('confirm-overlay');
+    const countEl  = document.getElementById('confirm-count');
+    const btnOk    = document.getElementById('confirm-ok');
+    const btnClose = document.getElementById('confirm-close');
+    const btnX     = document.getElementById('confirm-x');
+
+    countEl.textContent = count;
+    overlay.classList.add('active');
+
+    const finish = (result) => {
+      overlay.classList.remove('active');
+      btnOk.removeEventListener('click', onOk);
+      btnClose.removeEventListener('click', onClose);
+      btnX.removeEventListener('click', onClose);
+      overlay.removeEventListener('click', onOverlayClick);
+      resolve(result);
+    };
+
+    const onOk           = () => finish(true);
+    const onClose        = () => finish(false);
+    const onOverlayClick = (e) => { if (e.target === overlay) finish(false); };
+
+    btnOk.addEventListener('click', onOk);
+    btnClose.addEventListener('click', onClose);
+    btnX.addEventListener('click', onClose);
+    overlay.addEventListener('click', onOverlayClick);
+  });
 }
 
 function showError(m)    { errorMsg.innerHTML = m; errorBanner.style.display = 'block'; }
