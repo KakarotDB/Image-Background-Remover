@@ -1,4 +1,4 @@
-﻿/**
+/**
  * queue.js
  * Manages batch processing of multiple images.
  *
@@ -168,4 +168,3 @@ function canvasToObjectURL(canvas) {
     canvas.toBlob(blob => resolve(URL.createObjectURL(blob)), 'image/png');
   });
 }
-

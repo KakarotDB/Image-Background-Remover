@@ -1,4 +1,4 @@
-﻿*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 :root {
   --bg: #06060a;
@@ -156,4 +156,3 @@ footer a { color: var(--accent); text-decoration: none; }
   .features { grid-template-columns: 1fr; padding: 0 24px; }
   .queue-grid { grid-template-columns: 1fr; }
 }
-

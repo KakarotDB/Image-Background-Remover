@@ -1,4 +1,4 @@
-﻿/**
+/**
  * detect.js
  * Analyses an image file and decides whether to use flood-fill or AI.
  *
@@ -76,4 +76,3 @@ export function detectImageType(file) {
     img.src = URL.createObjectURL(file);
   });
 }
-

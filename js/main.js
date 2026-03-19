@@ -1,4 +1,4 @@
-﻿/**
+/**
  * main.js
  * Entry point â€” wires DOM events to the processing queue and updates the UI.
  * Contains zero processing logic â€” that all lives in the other modules.
@@ -195,12 +195,12 @@ function renderJobCard(job) {
   const statusLabels = {
     waiting:    'Waiting',
     processing: 'Processingâ€¦',
-    done:       job.method === 'flood' ? 'âš¡ Done' : 'ðŸ§  Done',
+    done:       job.method === 'flood' ? '&#x26A1; Done' : '&#x1F9E0; Done',
     error:      'Failed',
   };
 
   const methodBadge = job.method
-    ? `<span class="method-badge ${job.method}">${job.method === 'flood' ? 'âš¡ Instant' : 'ðŸ§  AI'}</span>`
+    ? `<span class="method-badge ${job.method}">${job.method === 'flood' ? '&#x26A1; Instant' : '&#x1F9E0; AI'}</span>`
     : '';
 
   const resultImgHTML = job.status === 'done' && job.resultUrl
@@ -330,4 +330,3 @@ function formatSize(b) {
   if (b < 1048576) return (b/1024).toFixed(1) + ' KB';
   return (b/1048576).toFixed(1) + ' MB';
 }
-

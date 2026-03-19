@@ -1,4 +1,4 @@
-﻿/**
+/**
  * aiRemoval.js
  * Loads and caches the RMBG-1.4 model, then runs AI background removal.
  * The model (~175MB) is downloaded once and cached in IndexedDB by Transformers.js.
@@ -79,4 +79,3 @@ export async function runAiRemoval(file, onProgress) {
 
   return { canvas, width: image.width, height: image.height };
 }
-
