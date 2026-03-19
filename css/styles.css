@@ -156,3 +156,17 @@ footer a { color: var(--accent); text-decoration: none; }
   .features { grid-template-columns: 1fr; padding: 0 24px; }
   .queue-grid { grid-template-columns: 1fr; }
 }
+
+/* -- Warning banner -- */
+.warning-banner { display: none; max-width: 760px; margin: 0 auto 24px; padding: 0 48px; }
+.warning-inner { background: rgba(255,225,53,0.06); border: 1px solid rgba(255,225,53,0.3); border-radius: 12px; padding: 14px 18px; font-size: 0.8rem; color: #ffe135; display: flex; align-items: flex-start; gap: 10px; line-height: 1.55; }
+.warning-inner svg { flex-shrink: 0; margin-top: 1px; }
+
+/* -- Cancel button -- */
+.btn-cancel { display: inline-flex; align-items: center; gap: 7px; background: transparent; color: #ff6b6b; border: 1px solid rgba(255,60,60,0.4); font-family: var(--font-head); font-size: 0.72rem; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; padding: 8px 16px; border-radius: 8px; cursor: pointer; transition: all 0.2s; margin-top: 16px; }
+.btn-cancel:hover:not(:disabled) { background: rgba(255,60,60,0.08); border-color: #ff6b6b; }
+.btn-cancel:disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* -- Cancelled job card -- */
+.queue-item.cancelled { opacity: 0.55; }
+.status-cancelled { color: var(--muted); border: 1px solid var(--border); }
