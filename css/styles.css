@@ -268,3 +268,13 @@ footer a { color: var(--accent); text-decoration: none; }
   transition: all 0.2s;
 }
 .confirm-btn-ok:hover { background: #ff8555; transform: translateY(-1px); }
+
+/* -- Footer links -- */
+.footer-links { display: flex; align-items: center; gap: 20px; }
+.footer-link {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 0.72rem; color: var(--muted); text-decoration: none;
+  transition: color 0.2s;
+}
+.footer-link:hover { color: var(--accent); }
+.footer-link svg { flex-shrink: 0; }
