@@ -1,7 +1,7 @@
 /**
  * floodFill.js
  * Removes solid-colour backgrounds using a BFS flood fill seeded from all 4 corners.
- * No model required â€” runs in milliseconds even on large images.
+ * No model required -- runs in milliseconds even on large images.
  *
  * Best for: logos, screenshots, illustrations, flat graphics.
  * tolerance: max colour distance a pixel can differ from the seed and still be removed.
@@ -46,7 +46,7 @@ export async function floodFillRemoveBg(file, tolerance = 40) {
   enqueue(0,   H-1);
   enqueue(W-1, H-1);
 
-  // BFS â€” make each matched pixel transparent
+  // BFS -- make each matched pixel transparent
   while (queue.length > 0) {
     const y = queue.pop();
     const x = queue.pop();

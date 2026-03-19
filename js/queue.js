@@ -3,8 +3,8 @@
  * Manages batch processing of multiple images.
  *
  * Strategy:
- *  - Flood-fill jobs (logos/flat graphics): run in parallel â€” they're instant and CPU-light
- *  - AI jobs (photos): run serially â€” the model is single-threaded; parallelism would crash
+ *  - Flood-fill jobs (logos/flat graphics): run in parallel -- they're instant and CPU-light
+ *  - AI jobs (photos): run serially -- the model is single-threaded; parallelism would crash
  *
  * Each job emits status updates via the onJobUpdate callback.
  */
@@ -18,7 +18,7 @@ import { ensureModel, runAiRemoval } from './aiRemoval.js';
  * @property {File}        file
  * @property {'waiting'|'processing'|'done'|'error'} status
  * @property {'flood'|'ai'|null} method
- * @property {string|null} resultUrl   â€” object URL of the processed canvas blob
+ * @property {string|null} resultUrl   -- object URL of the processed canvas blob
  * @property {number}      width
  * @property {number}      height
  * @property {string|null} error
@@ -48,8 +48,8 @@ export async function runQueue(files, onJobUpdate, onProgress, onAllDone) {
   // Emit all jobs immediately so the UI can render the queue
   jobs.forEach(j => onJobUpdate({ ...j }));
 
-  // â”€â”€ Phase 1: detect all image types in parallel (fast, just canvas reads) â”€â”€
-  onProgress('Analysing imagesâ€¦', `Checking ${jobs.length} image${jobs.length > 1 ? 's' : ''}â€¦`, 5);
+  // -- Phase 1: detect all image types in parallel (fast, just canvas reads) --
+  onProgress('Analysing images\u2026', `Checking ${jobs.length} image${jobs.length > 1 ? 's' : ''}\u2026`, 5);
   await Promise.all(jobs.map(async job => {
     job.method = await detectImageType(job.file);
   }));
@@ -69,7 +69,7 @@ export async function runQueue(files, onJobUpdate, onProgress, onAllDone) {
     doneCount++;
     onJobUpdate({ ...job });
     onProgress(
-      `Processingâ€¦ ${doneCount} / ${total} done`,
+      `Processing\u2026 ${doneCount} / ${total} done`,
       '',
       Math.round((doneCount / total) * 100)
     );
@@ -83,7 +83,7 @@ export async function runQueue(files, onJobUpdate, onProgress, onAllDone) {
     console.error(`Job failed [${job.file.name}]:`, err);
   };
 
-  // â”€â”€ Phase 2a: flood-fill jobs in parallel â”€â”€
+  // -- Phase 2a: flood-fill jobs in parallel --
   const floodPromises = floodJobs.map(async job => {
     try {
       job.status = 'processing';
@@ -96,7 +96,7 @@ export async function runQueue(files, onJobUpdate, onProgress, onAllDone) {
     }
   });
 
-  // â”€â”€ Phase 2b: AI jobs serially â”€â”€
+  // -- Phase 2b: AI jobs serially --
   const runAiJobs = async () => {
     for (const job of aiJobs) {
       try {
@@ -162,7 +162,7 @@ export async function retryJob(job, onJobUpdate, onProgress) {
   return job;
 }
 
-// â”€â”€ Helper â”€â”€
+// -- Helper --
 function canvasToObjectURL(canvas) {
   return new Promise(resolve => {
     canvas.toBlob(blob => resolve(URL.createObjectURL(blob)), 'image/png');

@@ -1,14 +1,14 @@
 /**
  * main.js
- * Entry point â€” wires DOM events to the processing queue and updates the UI.
- * Contains zero processing logic â€” that all lives in the other modules.
+ * Entry point -- wires DOM events to the processing queue and updates the UI.
+ * Contains zero processing logic -- that all lives in the other modules.
  */
 import { runQueue, retryJob } from './queue.js';
 
-// â”€â”€ CDN import for ZIP downloads â”€â”€
+// -- CDN import for ZIP downloads --
 import JSZip from 'https://cdn.jsdelivr.net/npm/jszip@3.10.1/+esm';
 
-// â”€â”€ DOM refs â”€â”€
+// -- DOM refs --
 const uploadArea   = document.getElementById('upload-area');
 const dropzone     = document.getElementById('dropzone');
 const fileInput    = document.getElementById('file-input');
@@ -26,13 +26,13 @@ const fmtSelect    = document.getElementById('fmt-select');
 const errorBanner  = document.getElementById('error-banner');
 const errorMsg     = document.getElementById('error-msg');
 
-// â”€â”€ State â”€â”€
+// -- State --
 let currentJobs = [];
 let isProcessing = false;
 
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ====================================================
 // FILE INPUT EVENTS
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ====================================================
 
 btnChoose.addEventListener('click', e => { e.stopPropagation(); fileInput.click(); });
 
@@ -76,16 +76,16 @@ document.addEventListener('paste', e => {
   else showError('No image found in clipboard. Copy an image first, then paste.');
 });
 
-// â”€â”€ New batch button â”€â”€
+// -- New batch button --
 btnNewBatch.addEventListener('click', resetUI);
 
-// â”€â”€ Download All as ZIP â”€â”€
+// -- Download All as ZIP --
 btnDlAll.addEventListener('click', async () => {
   const donJobs = currentJobs.filter(j => j.status === 'done' && j.resultUrl);
   if (!donJobs.length) return;
 
   btnDlAll.disabled = true;
-  btnDlAll.textContent = 'Zippingâ€¦';
+  btnDlAll.textContent = 'Zipping\u2026';
 
   const fmt     = fmtSelect.value;
   const mimeMap = { png: 'image/png', jpg: 'image/jpeg', webp: 'image/webp' };
@@ -116,9 +116,9 @@ btnDlAll.addEventListener('click', async () => {
     Download All as ZIP`;
 });
 
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ====================================================
 // BATCH START
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ====================================================
 
 async function startBatch(files) {
   if (isProcessing) return;
@@ -151,9 +151,9 @@ async function startBatch(files) {
   );
 }
 
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-// JOB UPDATE â€” called by queue.js for each state change
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ====================================================
+// JOB UPDATE -- called by queue.js for each state change
+// ====================================================
 
 function onJobUpdate(job) {
   // Update or insert in currentJobs
@@ -181,9 +181,9 @@ function onAllDone(jobs) {
   updateCounter();
 }
 
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ====================================================
 // RENDER JOB CARD
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ====================================================
 
 function renderJobCard(job) {
   const existing = document.getElementById(`card-${job.id}`);
@@ -194,13 +194,13 @@ function renderJobCard(job) {
 
   const statusLabels = {
     waiting:    'Waiting',
-    processing: 'Processingâ€¦',
-    done:       job.method === 'flood' ? '&#x26A1; Done' : '&#x1F9E0; Done',
+    processing: 'Processing\u2026',
+    done:       job.method === 'flood' ? '\u26A1 Done' : '\uD83E\uDDE0 Done',
     error:      'Failed',
   };
 
   const methodBadge = job.method
-    ? `<span class="method-badge ${job.method}">${job.method === 'flood' ? '&#x26A1; Instant' : '&#x1F9E0; AI'}</span>`
+    ? `<span class="method-badge ${job.method}">${job.method === 'flood' ? '\u26A1 Instant' : '\uD83E\uDDE0 AI'}</span>`
     : '';
 
   const resultImgHTML = job.status === 'done' && job.resultUrl
@@ -215,7 +215,7 @@ function renderJobCard(job) {
   const footerHTML = (() => {
     if (job.status === 'done') {
       return `
-        <div class="queue-item-meta">${job.width} Ã— ${job.height}px</div>
+        <div class="queue-item-meta">${job.width} x ${job.height}px</div>
         <div style="display:flex;gap:6px;align-items:center">
           ${methodBadge}
           <button class="btn-item-download" data-id="${job.id}">
@@ -230,7 +230,7 @@ function renderJobCard(job) {
     if (job.status === 'error') {
       return `
         <div class="queue-item-meta" style="color:#ff6b6b">${job.error || 'Unknown error'}</div>
-        <button class="btn-item-retry" data-id="${job.id}">â†º Retry</button>`;
+        <button class="btn-item-retry" data-id="${job.id}">&#x21BA; Retry</button>`;
     }
     return `<div class="queue-item-meta">${formatSize(job.file.size)}</div><div>${methodBadge}</div>`;
   })();
@@ -266,9 +266,9 @@ function renderJobCard(job) {
   if (!existing) queueGrid.appendChild(card);
 }
 
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ====================================================
 // HELPERS
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ====================================================
 
 function updateCounter() {
   const done  = currentJobs.filter(j => j.status === 'done').length;

@@ -2,10 +2,10 @@
  * detect.js
  * Analyses an image file and decides whether to use flood-fill or AI.
  *
- * Heuristics run on a 120Ã—120 downscale for speed:
- *  1. Corner consistency  â€” all 4 corners share a similar colour â†’ solid background
- *  2. Background coverage â€” >55% of pixels match the corner colour
- *  3. Colour variance     â€” stdDev < 60 â†’ flat graphic, not a photo
+ * Heuristics run on a 120x120 downscale for speed:
+ *  1. Corner consistency  -- all 4 corners share a similar colour -> solid background
+ *  2. Background coverage -- >55% of pixels match the corner colour
+ *  3. Colour variance     -- stdDev < 60 -> flat graphic, not a photo
  *
  * All three must agree to return 'flood'. Otherwise returns 'ai'.
  */
@@ -14,7 +14,7 @@ export function detectImageType(file) {
   const CORNER_TOL  = 35;   // max RGB distance for corners to be "same colour"
   const BG_TOL      = 40;   // max RGB distance for a pixel to "match" background
   const BG_COVER    = 0.55; // fraction of pixels that must match background
-  const VAR_THRESH  = 60;   // std-dev threshold â€” below = flat graphic
+  const VAR_THRESH  = 60;   // std-dev threshold -- below = flat graphic
 
   return new Promise(resolve => {
     const img = new Image();
@@ -29,7 +29,7 @@ export function detectImageType(file) {
       const px   = (x, y) => { const i=(y*SAMPLE+x)*4; return [d[i],d[i+1],d[i+2]]; };
       const dist = (a, b)  => Math.sqrt((a[0]-b[0])**2+(a[1]-b[1])**2+(a[2]-b[2])**2);
 
-      // 1. Average 3Ã—3 patch at each corner
+      // 1. Average 3x3 patch at each corner
       const cornerAvg = (cx, cy) => {
         let r=0,g=0,b=0,n=0;
         for (let dy=-1; dy<=1; dy++) for (let dx=-1; dx<=1; dx++) {

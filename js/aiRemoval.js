@@ -16,18 +16,18 @@ let processor = null;
 
 /**
  * Loads the model and processor if not already loaded.
- * Safe to call multiple times â€” subsequent calls are instant.
+ * Safe to call multiple times -- subsequent calls are instant.
  * @param {function} onProgress - called with (title, subtitle, percent)
  */
 export async function ensureModel(onProgress) {
   if (model && processor) return;
 
-  onProgress('Downloading AI modelâ€¦', 'First run only Â· ~175MB cached locally for future use', 5);
+  onProgress('Downloading AI model\u2026', 'First run only \u00B7 ~175MB cached locally for future use', 5);
 
   model = await AutoModel.from_pretrained('briaai/RMBG-1.4', {
     config: { model_type: 'custom' }
   });
-  onProgress('Loading processorâ€¦', 'Almost ready', 50);
+  onProgress('Loading processor\u2026', 'Almost ready', 50);
 
   processor = await AutoProcessor.from_pretrained('briaai/RMBG-1.4', {
     config: {
@@ -53,13 +53,13 @@ export async function ensureModel(onProgress) {
  * @returns {{ canvas: HTMLCanvasElement, width: number, height: number }}
  */
 export async function runAiRemoval(file, onProgress) {
-  onProgress('Running AI inferenceâ€¦', 'Segmenting foreground â€” may take a moment on large images', 72);
+  onProgress('Running AI inference\u2026', 'Segmenting foreground -- may take a moment on large images', 72);
 
   const image = await RawImage.fromURL(URL.createObjectURL(file));
   const { pixel_values } = await processor(image);
   const { output }       = await model({ input: pixel_values });
 
-  onProgress('Compositing outputâ€¦', 'Applying transparency mask at full resolution', 94);
+  onProgress('Compositing output\u2026', 'Applying transparency mask at full resolution', 94);
 
   const mask = await RawImage.fromTensor(output[0].mul(255).to('uint8'))
                              .resize(image.width, image.height);
